@@ -1,0 +1,49 @@
+# ===== Unreal Engine =====
+# Dossiers générés (recréés à la compilation / à l'ouverture)
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+
+# Binaires et intermédiaires des plugins du projet
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+
+# Fichiers de compilation
+*.pdb
+*.obj
+*.o
+*.lib
+*.exp
+*.ilk
+*.dll
+*.exe
+*.app
+*.ipa
+*.patch_*.*
+
+# Fichiers de solution générés (Generate Project Files les recrée)
+*.sln
+*.suo
+*.sdf
+*.VC.db
+*.VC.opendb
+*.opensdf
+
+# ===== Visual Studio =====
+.vs/
+*.vcxproj*
+*.user
+
+# ===== JetBrains Rider =====
+.idea/
+*.DotSettings.user
+*.sln.DotSettings.user
+.vsconfig
+
+# ===== Divers =====
+Thumbs.db
+.DS_Store
+*.tmp
+*.log
