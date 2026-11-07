@@ -65,6 +65,36 @@ ATP3ShootCharacter::ATP3ShootCharacter()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
+void ATP3ShootCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	Health = MaxHealth;
+}
+
+
+//dégat
+
+float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
+									 AController* EventInstigator, AActor* DamageCauser)
+{
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (bIsDead || ActualDamage <= 0.0f)
+	{
+		return 0.0f;
+	}
+	Health = FMath::Clamp(Health - ActualDamage, 0.0f, MaxHealth);
+	OnHealthChanged.Broadcast(Health, ActualDamage, EventInstigator);
+
+	if (Health <= 0.0f)
+	{
+		bIsDead = true;
+		//à faire : Ragdoll
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	return ActualDamage;
+}
+
 void ATP3ShootCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings

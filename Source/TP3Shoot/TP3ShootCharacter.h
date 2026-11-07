@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "TP3ShootCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnHealthChangedSignature, float, CurrentHealth, float, Damage, AController*, InstigatedBy);
+
 UCLASS(config=Game)
 class ATP3ShootCharacter : public ACharacter
 {
@@ -26,8 +28,34 @@ public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Health")
+	FOnHealthChangedSignature OnHealthChanged;
+
+	UFUNCTION(BlueprintPure, Category = "Health")
+	float GetHealth() const { return Health; }
+
+	UFUNCTION(BlueprintPure, Category = "Health")
+	float GetMaxHealth() const { return MaxHealth; }
+
+	UFUNCTION(BlueprintPure, Category = "Health")
+	bool IsDead() const { return bIsDead; }
 
 protected:
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
+	float MaxHealth = 10.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Health")
+	float Health = 10.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Health")
+	bool bIsDead = false;
+
+	virtual void BeginPlay() override;
+	
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
+							 class AController* EventInstigator, AActor* DamageCauser) override;
 
 	// Add a gun skeletal mesh component
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
