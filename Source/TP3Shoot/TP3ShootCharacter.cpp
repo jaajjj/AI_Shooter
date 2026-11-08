@@ -12,6 +12,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 
 
@@ -73,7 +74,6 @@ void ATP3ShootCharacter::BeginPlay()
 
 
 //dégat
-
 float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
 									 AController* EventInstigator, AActor* DamageCauser)
 {
@@ -83,15 +83,20 @@ float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent con
 	{
 		return 0.0f;
 	}
+
+	// Déduction des points de vie
 	Health = FMath::Clamp(Health - ActualDamage, 0.0f, MaxHealth);
+
+	// Déclenchement de la délégation pour l'IA, le HUD, etc.
 	OnHealthChanged.Broadcast(Health, ActualDamage, EventInstigator);
 
+	// Gestion de la mort
 	if (Health <= 0.0f)
 	{
 		bIsDead = true;
-		//à faire : Ragdoll
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision); //[cite: 7]
 	}
+
 	return ActualDamage;
 }
 
@@ -154,31 +159,51 @@ void ATP3ShootCharacter::StopAiming()
 
 void ATP3ShootCharacter::Fire()
 {
-	FVector Start, LineTraceEnd, ForwardVector;
+	//point de départ : caméra en visée, canon du fusil sinon
+	FVector Start = IsAiming ? FollowCamera->GetComponentLocation() 
+							 : (SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation());
 
-	if (IsAiming)
+	FVector ForwardVector = FollowCamera->GetForwardVector();
+	FVector LineTraceEnd = Start + (ForwardVector * 10000.f);
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this); //ne pas se tirer dessus
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, LineTraceEnd, ECC_Visibility, Params);
+
+	if (bHit)
 	{
+		// Debug visuel : ligne verte vers l'impact + sphère rouge au point de collision
+		DrawDebugLine(GetWorld(), Start, Hit.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.5f);
+		DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
 
-		Start = FollowCamera->GetComponentLocation();
+		AActor* HitActor = Hit.GetActor();
 
-		ForwardVector = FollowCamera->GetForwardVector();
+		//dmg
+		if (HitActor && !IsAlly(HitActor))
+		{
+			UGameplayStatics::ApplyDamage(
+				HitActor,
+				2.0f,
+				GetController(), // Transmet l'InstigatorController
+				this,
+				UDamageType::StaticClass()
+			);
+		}
 
-		LineTraceEnd = Start + (ForwardVector * 10000);
+		//particule
+		FireParticle(Start, Hit.ImpactPoint);
 	}
-	else {
+	else
+	{
+		//Debug point
+		DrawDebugLine(GetWorld(), Start, LineTraceEnd, FColor::Red, false, 2.0f, 0, 1.5f);
 
-		// Get muzzle location
-		Start = SK_Gun->GetSocketLocation("MuzzleFlash");
-
-		// Get Rotation Forward Vector
-		ForwardVector = FollowCamera->GetForwardVector();
-
-		// Get End Point
-		LineTraceEnd = Start + (ForwardVector * 10000);
+		// Particule vers le point max
+		FireParticle(Start, LineTraceEnd);
 	}
 }
-
-
 
 bool ATP3ShootCharacter::IsAlly(const AActor* Other) const
 {
