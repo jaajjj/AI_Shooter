@@ -77,6 +77,7 @@ void ATP3ShootCharacter::BeginPlay()
 float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
 									 AController* EventInstigator, AActor* DamageCauser)
 {
+	if (IsAlly(DamageCauser)) return 0.0f;
 	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
 	if (bIsDead || ActualDamage <= 0.0f)
