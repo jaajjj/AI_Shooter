@@ -95,7 +95,16 @@ float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent con
 	if (Health <= 0.0f)
 	{
 		bIsDead = true;
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision); //[cite: 7]
+		
+		GetCharacterMovement()->DisableMovement();
+		GetCharacterMovement()->StopMovementImmediately();
+
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		//ragdoll
+		GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+		GetMesh()->SetSimulatePhysics(true);
+
+		DetachFromControllerPendingDestroy();
 	}
 
 	return ActualDamage;
@@ -160,6 +169,7 @@ void ATP3ShootCharacter::StopAiming()
 
 void ATP3ShootCharacter::Fire()
 {
+	if (bIsDead) return;
 	//point de départ : caméra en visée, canon du fusil sinon
 	FVector Start = IsAiming ? FollowCamera->GetComponentLocation() 
 							 : (SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation());
