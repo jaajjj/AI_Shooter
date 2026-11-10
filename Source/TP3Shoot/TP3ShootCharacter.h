@@ -119,18 +119,6 @@ protected:
 	void Aim();
 
 	void StopAiming();
-
-	// Firing function
-	void Fire();
-
-	void BoostSpeed();
-
-	void RemoveSpeedBoost();
-
-	void FireParticle(FVector Start, FVector Impact);
-	
-	void ChangeSize();
-
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -147,6 +135,17 @@ public:
 	// Returns true if Other is a character of the same team
 	UFUNCTION(BlueprintPure, Category = Team)
 	bool IsAlly(const AActor* Other) const;
+	
+	void Fire();
+
+	void BoostSpeed();
+
+	void RemoveSpeedBoost();
+
+	void FireParticle(FVector Start, FVector Impact);
+	
+	UFUNCTION(BlueprintCallable, Category = "Size")
+	void ChangeSize();
 
 public:
 
