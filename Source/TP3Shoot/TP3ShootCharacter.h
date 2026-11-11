@@ -50,6 +50,9 @@ public:
 	// Team identifier (characters with the same IDTeam are allies)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Team)
 	int32 IDTeam;
+	
+	UPROPERTY(EditAnywhere, Category = "Gameplay|Effects")
+	class UParticleSystem* SmokeParticle;
 
 protected:
 	

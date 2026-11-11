@@ -293,8 +293,17 @@ void ATP3ShootCharacter::ChangeSize()
 	const float Scale = bIsGrand ? ScaleGrand : ScalePetit;
 	GetCapsuleComponent()->SetWorldScale3D(FVector(Scale));
 
-	// Smaller is slower
+	//plus petit = plus lent
 	GetCharacterMovement()->MaxWalkSpeed = bIsGrand ? 500.f : 300.f;
+	
+	if (SmokeParticle)
+	{
+		FTransform SpawnTransform;
+		SpawnTransform.SetLocation(GetActorLocation());
+		SpawnTransform.SetScale3D(FVector(1.5f, 1.5f, 1.5f));
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SmokeParticle, SpawnTransform, true);
+	}
 }
 
 
