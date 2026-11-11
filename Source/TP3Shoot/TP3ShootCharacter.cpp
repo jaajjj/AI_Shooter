@@ -14,6 +14,9 @@
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
+#include "Perception/AIPerceptionSystem.h"
+#include "Perception/AISense_Sight.h"
+#include "TP3ShootGameMode.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,26 +88,56 @@ float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent con
 		return 0.0f;
 	}
 
-	// Déduction des points de vie
+	//déduction des points de vie
 	Health = FMath::Clamp(Health - ActualDamage, 0.0f, MaxHealth);
 
-	// Déclenchement de la délégation pour l'IA, le HUD, etc.
+	//déclenchement de la délégation pour l'IA, le HUD, etc.
 	OnHealthChanged.Broadcast(Health, ActualDamage, EventInstigator);
 
 	// Gestion de la mort
 	if (Health <= 0.0f)
 	{
 		bIsDead = true;
-		
+
+		AController* SavedController = GetController();
+		TSubclassOf<APawn> MyClass = GetClass();
+		FTransform SpawnTransform = GetActorTransform();
+		int32 SavedTeamID = IDTeam;
+
+		//retirer de la perception
+		if (UAIPerceptionSystem* PerceptionSystem = UAIPerceptionSystem::GetCurrent(GetWorld()))
+		{
+			PerceptionSystem->UnregisterSource(*this);
+		}
+
 		GetCharacterMovement()->DisableMovement();
 		GetCharacterMovement()->StopMovementImmediately();
-
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 		//ragdoll
 		GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 		GetMesh()->SetSimulatePhysics(true);
 
-		DetachFromControllerPendingDestroy();
+		if (SavedController)
+		{
+			SavedController->UnPossess();
+		}
+		
+		
+		if (ATP3ShootGameMode* GM = Cast<ATP3ShootGameMode>(GetWorld()->GetAuthGameMode()))
+		{
+			//gestion score
+			if (IDTeam == 1)
+			{
+				GM->IncBlueKills();
+			}else {
+				GM->IncRedKills();
+			}
+			//respawn
+			GM->RequestRespawn(SavedController, MyClass, SpawnTransform, SavedTeamID);
+		}
+
+		SetLifeSpan(5.0f);
 	}
 
 	return ActualDamage;
@@ -160,21 +193,30 @@ void ATP3ShootCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Loc
 void ATP3ShootCharacter::Aim()
 {
 	IsAiming = true;
+	if (IsPlayerControlled())
+	{
+		bUseControllerRotationYaw = true;
+	}
 }
 
 void ATP3ShootCharacter::StopAiming()
 {
 	IsAiming = false;
+	if (IsPlayerControlled())
+	{
+		bUseControllerRotationYaw = false;
+	}
 }
 
 void ATP3ShootCharacter::Fire()
 {
 	if (bIsDead) return;
 	//point de départ : caméra en visée, canon du fusil sinon
-	FVector Start = IsAiming ? FollowCamera->GetComponentLocation() 
-							 : (SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation());
+	bool bIsPlayer = IsPlayerControlled();
+	FVector Start = (bIsPlayer && IsAiming) ? FollowCamera->GetComponentLocation() 
+		: (SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation());
 
-	FVector ForwardVector = FollowCamera->GetForwardVector();
+	FVector ForwardVector = bIsPlayer ? FollowCamera->GetForwardVector() : GetActorForwardVector();
 	FVector LineTraceEnd = Start + (ForwardVector * 10000.f);
 
 	FHitResult Hit;

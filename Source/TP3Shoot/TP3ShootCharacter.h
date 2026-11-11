@@ -38,8 +38,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetMaxHealth() const { return MaxHealth; }
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Health")
+	bool bIsDead = false;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Size)
+	bool bIsGrand = true;
+	
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const { return bIsDead; }
+	
+	// Team identifier (characters with the same IDTeam are allies)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Team)
+	int32 IDTeam;
 
 protected:
 	
@@ -48,10 +58,7 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Health")
 	float Health = 20.0f;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Health")
-	bool bIsDead = false;
-
+	
 	virtual void BeginPlay() override;
 	
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
@@ -73,13 +80,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Gameplay)
 	class UAnimMontage* FireAnimation;
 	
-	// Team identifier (characters with the same IDTeam are allies)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Team)
-	int32 IDTeam;
 	
 	// Size
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Size)
-	bool bIsGrand = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Size)
 	float ScaleGrand = 1.0f;
@@ -115,10 +117,6 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
-	// Aiming function
-	void Aim();
-
-	void StopAiming();
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -146,6 +144,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Size")
 	void ChangeSize();
+	
+	// Aiming function
+	void Aim();
+
+	void StopAiming();
 
 public:
 

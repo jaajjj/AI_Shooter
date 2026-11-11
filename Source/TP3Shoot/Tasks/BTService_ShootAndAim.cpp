@@ -23,6 +23,12 @@ void UBTService_ShootAndAim::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp,
 	if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName)))
 	{
 		AIC->SetFocus(Target);
+
+		//vise
+		if (ATP3ShootCharacter* Char = Cast<ATP3ShootCharacter>(AIC->GetPawn()))
+		{
+			Char->Aim();
+		}
 	}
 }
 
@@ -35,13 +41,26 @@ void UBTService_ShootAndAim::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* 
 	if (!AIC || !BB) return;
 
 	AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
-	if (Target)
-	{
-		AIC->SetFocus(Target);
+	if (!Target) return;
 
+	//si mort, on skip la cible
+	if (ATP3ShootCharacter* TargetChar = Cast<ATP3ShootCharacter>(Target))
+	{
+		if (TargetChar->bIsDead)
+		{
+			BB->ClearValue(TargetActorKey.SelectedKeyName);
+			AIC->ClearFocus(EAIFocusPriority::Gameplay);
+			return;
+		}
+	}
+
+	//en vie
+	AIC->SetFocus(Target);
+	if (AIC->LineOfSightTo(Target))
+	{
 		if (ATP3ShootCharacter* Char = Cast<ATP3ShootCharacter>(AIC->GetPawn()))
 		{
-			Char->Fire(); 
+			Char->Fire();
 		}
 	}
 }
@@ -53,5 +72,11 @@ void UBTService_ShootAndAim::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, 
 	if (AAIController* AIC = OwnerComp.GetAIOwner())
 	{
 		AIC->ClearFocus(EAIFocusPriority::Gameplay);
+
+		//arrete de viser
+		if (ATP3ShootCharacter* Char = Cast<ATP3ShootCharacter>(AIC->GetPawn()))
+		{
+			Char->StopAiming();
+		}
 	}
 }
