@@ -16,8 +16,47 @@ ATP3ShootGameMode::ATP3ShootGameMode()
 	}
 }
 
+void ATP3ShootGameMode::CheckWinCondition()
+{
+	if (bIsGameEnded) return;
+	if (blueKills >= KillsToWin)
+	{
+		TriggerGameOver(0);
+	}
+	else if (redKills >= KillsToWin)
+	{
+		TriggerGameOver(1);
+	}
+}
+
+void ATP3ShootGameMode::TriggerGameOver(int32 WinningTeamID)
+{
+	if (bIsGameEnded) return;
+	bIsGameEnded = true;
+
+	OnGameOver.Broadcast(WinningTeamID);
+}
+
+void ATP3ShootGameMode::IncRedKills()
+{
+	if (bIsGameEnded) return;
+
+	redKills++;
+	CheckWinCondition();
+}
+
+void ATP3ShootGameMode::IncBlueKills()
+{
+	if (bIsGameEnded) return;
+
+	blueKills++;
+	CheckWinCondition();
+}
+
+
 void ATP3ShootGameMode::RequestRespawn(AController* Controller, TSubclassOf<APawn> PawnClass, const FTransform& SpawnTransform, int32 TeamID)
 {
+	if (bIsGameEnded) return; //arrete si game fini
 	FTimerHandle UnusedHandle;
 	FTimerDelegate RespawnDelegate = FTimerDelegate::CreateUObject(this, &ATP3ShootGameMode::Respawn, Controller, PawnClass, SpawnTransform, TeamID);
 	//wait 3s avan de respawn

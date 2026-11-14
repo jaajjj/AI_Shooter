@@ -8,6 +8,8 @@
 
 class AController;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGameOverSignature, int32, WinningTeamID);
+
 UCLASS(minimalapi)
 class ATP3ShootGameMode : public AGameModeBase
 {
@@ -23,11 +25,25 @@ public:
 	UFUNCTION(BlueprintPure, Category = Stats)
 	int32 GetBlueKills() const { return blueKills; }
 	
-	void IncRedKills() { redKills++; }
-	void IncBlueKills() { blueKills++; }
+	void IncRedKills();
+	void IncBlueKills();
+	
+	UPROPERTY(BlueprintAssignable, Category = "Game|Events")
+	FOnGameOverSignature OnGameOver;
 
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rules", meta = (ClampMin = "1"))
+	int32 KillsToWin = 1;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "State")
+	bool bIsGameEnded = false;
+		
 private:
 	void Respawn(AController* Controller, TSubclassOf<APawn> PawnClass, FTransform SpawnTransform, int32 TeamID);
+	void CheckWinCondition();
+	void TriggerGameOver(int32 WinningTeamID);
+	
 	int32 redKills= 0;
 	int32 blueKills= 0;
 };
