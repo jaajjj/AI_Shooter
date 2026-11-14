@@ -22,9 +22,10 @@ void UBTService_ShootAndAim::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp,
 
 	if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName)))
 	{
-		AIC->SetFocus(Target);
-
-		//vise
+		if (AIC->LineOfSightTo(Target))
+		{
+			AIC->SetFocus(Target);
+		}
 		if (ATP3ShootCharacter* Char = Cast<ATP3ShootCharacter>(AIC->GetPawn()))
 		{
 			Char->Aim();
@@ -55,13 +56,18 @@ void UBTService_ShootAndAim::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* 
 	}
 
 	//en vie
-	AIC->SetFocus(Target);
 	if (AIC->LineOfSightTo(Target))
 	{
+		AIC->SetFocus(Target);
 		if (ATP3ShootCharacter* Char = Cast<ATP3ShootCharacter>(AIC->GetPawn()))
 		{
 			Char->Fire();
 		}
+	}
+	else
+	{
+		FVector LastLoc = BB->GetValueAsVector(TEXT("LastKnownLocation"));
+		AIC->SetFocalPoint(LastLoc, EAIFocusPriority::Gameplay);
 	}
 }
 
