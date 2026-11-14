@@ -24,6 +24,14 @@ class ATP3ShootCharacter : public ACharacter
 
 public:
 	ATP3ShootCharacter();
+	virtual void Tick(float DeltaTime) override;
+	
+	//var debug
+	static bool bDebugForward;
+	static bool bDebugShoot;
+
+	void ToggleForwardDebug();
+	void ToggleShootDebug();
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)

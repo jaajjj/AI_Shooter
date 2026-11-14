@@ -22,8 +22,12 @@
 //////////////////////////////////////////////////////////////////////////
 // ATP3ShootCharacter
 
+bool ATP3ShootCharacter::bDebugForward = true;
+bool ATP3ShootCharacter::bDebugShoot = true;
+
 ATP3ShootCharacter::ATP3ShootCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -65,6 +69,21 @@ ATP3ShootCharacter::ATP3ShootCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
+
+void ATP3ShootCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bDebugForward && !bIsDead)
+	{
+		const float Scale = bIsGrand ? ScaleGrand : ScalePetit;
+		FVector Start = GetActorLocation() + FVector(0.f, 0.f, 20.f * Scale);
+		FVector End = Start + (GetActorForwardVector() * 1500.f);
+
+		DrawDebugDirectionalArrow(GetWorld(), Start, End, 25.f, FColor::Cyan, false, -1.f, 0, 1.5f);
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -178,6 +197,10 @@ void ATP3ShootCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	
 	// ChangeSize
 	PlayerInputComponent->BindAction("ChangeSize", IE_Pressed, this, &ATP3ShootCharacter::ChangeSize);
+	
+	//debug
+	PlayerInputComponent->BindAction("DebugLigne", IE_Pressed, this, &ATP3ShootCharacter::ToggleForwardDebug);
+	PlayerInputComponent->BindAction("DebugShoot", IE_Pressed, this, &ATP3ShootCharacter::ToggleShootDebug);
 }
 
 void ATP3ShootCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
@@ -227,9 +250,12 @@ void ATP3ShootCharacter::Fire()
 
 	if (bHit)
 	{
-		// Debug visuel : ligne verte vers l'impact + sphère rouge au point de collision
-		DrawDebugLine(GetWorld(), Start, Hit.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.5f);
-		DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
+		//ligne verte vers l'impact + sphère rouge au point de collision
+		if (bDebugShoot)
+		{
+			DrawDebugLine(GetWorld(), Start, Hit.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.5f);
+			DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
+		}
 
 		AActor* HitActor = Hit.GetActor();
 
@@ -251,7 +277,10 @@ void ATP3ShootCharacter::Fire()
 	else
 	{
 		//Debug point
-		DrawDebugLine(GetWorld(), Start, LineTraceEnd, FColor::Red, false, 2.0f, 0, 1.5f);
+		if (bDebugShoot)
+		{
+			DrawDebugLine(GetWorld(), Start, LineTraceEnd, FColor::Red, false, 2.0f, 0, 1.5f);
+		}
 
 		// Particule vers le point max
 		FireParticle(Start, LineTraceEnd);
@@ -364,5 +393,28 @@ void ATP3ShootCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+	}
+}
+
+//debug toggle
+void ATP3ShootCharacter::ToggleForwardDebug()
+{
+	bDebugForward = !bDebugForward;
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 2.0f, FColor::Cyan,
+			FString::Printf(TEXT("Debug Ligne de vue (Forward) : %s"), bDebugForward ? TEXT("ON") : TEXT("OFF")));
+	}
+}
+
+void ATP3ShootCharacter::ToggleShootDebug()
+{
+	bDebugShoot = !bDebugShoot;
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(2, 2.0f, FColor::Green,
+			FString::Printf(TEXT("Debug Tir : %s"), bDebugShoot ? TEXT("ON") : TEXT("OFF")));
 	}
 }
