@@ -34,7 +34,7 @@ public:
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rules", meta = (ClampMin = "1"))
-	int32 KillsToWin = 1;
+	int32 KillsToWin = 10;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "State")
 	bool bIsGameEnded = false;
