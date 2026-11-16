@@ -234,6 +234,8 @@ void ATP3ShootCharacter::StopAiming()
 void ATP3ShootCharacter::Fire()
 {
 	if (bIsDead) return;
+	bool bIsPaused = UGameplayStatics::IsGamePaused(GetWorld());
+	if (bIsPaused) return;
 	
 	FVector MuzzleLocation = SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation();
 
