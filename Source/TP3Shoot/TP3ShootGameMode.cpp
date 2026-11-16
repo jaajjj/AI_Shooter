@@ -9,11 +9,7 @@
 
 ATP3ShootGameMode::ATP3ShootGameMode()
 {
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter"));
-	if (PlayerPawnBPClass.Class != NULL)
-	{
-		DefaultPawnClass = PlayerPawnBPClass.Class;
-	}
+	
 }
 
 void ATP3ShootGameMode::BeginPlay()
