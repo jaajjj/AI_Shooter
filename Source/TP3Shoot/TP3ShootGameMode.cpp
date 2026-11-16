@@ -16,6 +16,16 @@ ATP3ShootGameMode::ATP3ShootGameMode()
 	}
 }
 
+void ATP3ShootGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (BackgroundMusic)
+	{
+		MusicComponent = UGameplayStatics::SpawnSound2D(this, BackgroundMusic, 0.5f);
+	}
+}
+
 void ATP3ShootGameMode::CheckWinCondition()
 {
 	if (bIsGameEnded) return;

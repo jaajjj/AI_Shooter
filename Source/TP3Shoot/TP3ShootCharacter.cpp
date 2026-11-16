@@ -234,10 +234,19 @@ void ATP3ShootCharacter::StopAiming()
 void ATP3ShootCharacter::Fire()
 {
 	if (bIsDead) return;
+	
+	FVector MuzzleLocation = SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation();
+
+	// Jouer le son de tir au niveau du canon
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleLocation, 0.05f);
+	}
 	//point de départ : caméra en visée, canon du fusil sinon
 	bool bIsPlayer = IsPlayerControlled();
 	FVector Start = (bIsPlayer && IsAiming) ? FollowCamera->GetComponentLocation() 
-		: (SK_Gun ? SK_Gun->GetSocketLocation(TEXT("MuzzleFlash")) : GetActorLocation());
+		: MuzzleLocation;
+	
 
 	FVector ForwardVector = bIsPlayer ? FollowCamera->GetForwardVector() : GetActorForwardVector();
 	FVector LineTraceEnd = Start + (ForwardVector * 10000.f);
@@ -273,6 +282,8 @@ void ATP3ShootCharacter::Fire()
 
 		//particule
 		FireParticle(Start, Hit.ImpactPoint);
+		
+		
 	}
 	else
 	{

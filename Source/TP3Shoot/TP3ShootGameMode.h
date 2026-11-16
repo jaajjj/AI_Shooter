@@ -30,6 +30,12 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Game|Events")
 	FOnGameOverSignature OnGameOver;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundBase* BackgroundMusic;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
+	UAudioComponent* MusicComponent;
 
 	
 protected:
@@ -43,6 +49,7 @@ private:
 	void Respawn(AController* Controller, TSubclassOf<APawn> PawnClass, FTransform SpawnTransform, int32 TeamID);
 	void CheckWinCondition();
 	void TriggerGameOver(int32 WinningTeamID);
+	void BeginPlay() override;
 	
 	int32 redKills= 0;
 	int32 blueKills= 0;

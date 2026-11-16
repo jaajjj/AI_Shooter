@@ -61,6 +61,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = "Gameplay|Effects")
 	class UParticleSystem* SmokeParticle;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	USoundBase* FireSound;
 
 protected:
 	
