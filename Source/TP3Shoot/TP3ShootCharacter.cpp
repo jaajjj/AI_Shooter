@@ -17,6 +17,8 @@
 #include "Perception/AIPerceptionSystem.h"
 #include "Perception/AISense_Sight.h"
 #include "TP3ShootGameMode.h"
+#include "Engine/StaticMeshActor.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -68,19 +70,60 @@ ATP3ShootCharacter::ATP3ShootCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	
+	LaserSightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LaserSightMesh"));
+	LaserSightMesh->SetupAttachment(RootComponent);
+	LaserSightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LaserSightMesh->SetCastShadow(false);
+	LaserSightMesh->SetVisibility(false);
 }
 
 void ATP3ShootCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bDebugForward && !bIsDead)
+	if (bDebugForward && !bIsDead && LaserSightMesh)
 	{
+		// S'assurer que le mesh est bien charge
+		if (!LaserSightMesh->GetStaticMesh() && LaserCylinderMesh)
+		{
+			LaserSightMesh->SetStaticMesh(LaserCylinderMesh);
+			if (SightMaterial)
+			{
+				UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(SightMaterial, this);
+				if (DynMat)
+				{
+					DynMat->SetVectorParameterValue(TEXT("Color"), FColor::Cyan);
+					LaserSightMesh->SetMaterial(0, DynMat);
+				}
+				else
+				{
+					LaserSightMesh->SetMaterial(0, SightMaterial);
+				}
+			}
+		}
+
+		LaserSightMesh->SetVisibility(true);
+
 		const float Scale = bIsGrand ? ScaleGrand : ScalePetit;
 		FVector Start = GetActorLocation() + FVector(0.f, 0.f, 20.f * Scale);
-		FVector End = Start + (GetActorForwardVector() * 1500.f);
+		float LaserLength = 1500.f;
+		FVector Forward = GetActorForwardVector();
 
-		DrawDebugDirectionalArrow(GetWorld(), Start, End, 25.f, FColor::Cyan, false, -1.f, 0, 1.5f);
+		// Le pivot du cylindre est au centre : on place le composant au milieu du segment
+		FVector Center = Start + (Forward * (LaserLength * 0.5f));
+		LaserSightMesh->SetWorldLocation(Center);
+
+		// Aligner la hauteur du cylindre (axe Z) vers l'avant (Forward)
+		FRotator Rotation = FRotationMatrix::MakeFromZ(Forward).Rotator();
+		LaserSightMesh->SetWorldRotation(Rotation);
+
+		float RadiusScale = FMath::Max(LaserThickness, 1.0f) / 100.f;
+		LaserSightMesh->SetWorldScale3D(FVector(RadiusScale, RadiusScale, LaserLength / 100.f));
+	}
+	else if (LaserSightMesh)
+	{
+		LaserSightMesh->SetVisibility(false);
 	}
 }
 
@@ -92,6 +135,38 @@ void ATP3ShootCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	Health = MaxHealth;
+
+	// Secours : si non assigne dans le blueprint, charge les assets par defaut du moteur
+	if (!LaserCylinderMesh)
+	{
+		LaserCylinderMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	}
+	if (!SightMaterial)
+	{
+		SightMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+	}
+	if (!TracerMaterial)
+	{
+		TracerMaterial = SightMaterial;
+	}
+
+	if (LaserSightMesh && LaserCylinderMesh)
+	{
+		LaserSightMesh->SetStaticMesh(LaserCylinderMesh);
+		if (SightMaterial)
+		{
+			UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(SightMaterial, this);
+			if (DynMat)
+			{
+				DynMat->SetVectorParameterValue(TEXT("Color"), FColor::Cyan);
+				LaserSightMesh->SetMaterial(0, DynMat);
+			}
+			else
+			{
+				LaserSightMesh->SetMaterial(0, SightMaterial);
+			}
+		}
+	}
 }
 
 
@@ -156,7 +231,7 @@ float ATP3ShootCharacter::TakeDamage(float DamageAmount, struct FDamageEvent con
 			GM->RequestRespawn(SavedController, MyClass, SpawnTransform, SavedTeamID);
 		}
 
-		SetLifeSpan(5.0f);
+		SetLifeSpan(3.0f);
 	}
 
 	return ActualDamage;
@@ -261,42 +336,101 @@ void ATP3ShootCharacter::Fire()
 
 	if (bHit)
 	{
-		//ligne verte vers l'impact + sphère rouge au point de collision
+		// Remplacement du debug : ligne verte vers l'impact
 		if (bDebugShoot)
 		{
-			DrawDebugLine(GetWorld(), Start, Hit.ImpactPoint, FColor::Green, false, 2.0f, 0, 1.5f);
-			DrawDebugPoint(GetWorld(), Hit.ImpactPoint, 10.0f, FColor::Red, false, 2.0f);
+			SpawnTracerLine(Start, Hit.ImpactPoint, FColor::Green);
 		}
 
 		AActor* HitActor = Hit.GetActor();
 
-		//dmg
+		// dmg
 		if (HitActor && !IsAlly(HitActor))
 		{
 			UGameplayStatics::ApplyDamage(
 				HitActor,
 				2.0f,
-				GetController(), // Transmet l'InstigatorController
+				GetController(),
 				this,
 				UDamageType::StaticClass()
 			);
 		}
 
-		//particule
+		// particule
 		FireParticle(Start, Hit.ImpactPoint);
-		
-		
 	}
 	else
 	{
-		//Debug point
+		// Remplacement du debug : ligne rouge vers la portée max
 		if (bDebugShoot)
 		{
-			DrawDebugLine(GetWorld(), Start, LineTraceEnd, FColor::Red, false, 2.0f, 0, 1.5f);
+			SpawnTracerLine(Start, LineTraceEnd, FColor::Red);
 		}
 
 		// Particule vers le point max
 		FireParticle(Start, LineTraceEnd);
+	}
+}
+
+void ATP3ShootCharacter::SpawnTracerLine(const FVector& Start, const FVector& End, const FColor& Color)
+{
+	UStaticMesh* MeshToUse = LaserCylinderMesh;
+	if (!MeshToUse)
+	{
+		MeshToUse = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	}
+	if (!MeshToUse) return;
+
+	FVector Direction = End - Start;
+	float Length = Direction.Size();
+	if (Length <= 0.0f) return;
+
+	FVector MidPoint = Start + (Direction * 0.5f);
+	FRotator Rotation = FRotationMatrix::MakeFromZ(Direction).Rotator();
+	float RadiusScale = FMath::Max(LaserThickness, 1.0f) / 100.f;
+	FVector Scale = FVector(RadiusScale, RadiusScale, Length / 100.f);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AActor* TracerActor = GetWorld()->SpawnActor<AActor>(MidPoint, Rotation, SpawnParams);
+	if (TracerActor)
+	{
+		UStaticMeshComponent* MeshComp = NewObject<UStaticMeshComponent>(TracerActor, TEXT("TracerMeshComp"));
+		if (MeshComp)
+		{
+			MeshComp->SetMobility(EComponentMobility::Movable);
+			MeshComp->SetStaticMesh(MeshToUse);
+			MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			MeshComp->SetCastShadow(false);
+			TracerActor->SetRootComponent(MeshComp);
+			MeshComp->RegisterComponent();
+			MeshComp->SetWorldLocationAndRotation(MidPoint, Rotation);
+			MeshComp->SetWorldScale3D(Scale);
+
+			UMaterialInterface* MatToUse = TracerMaterial ? TracerMaterial : SightMaterial;
+			if (!MatToUse)
+			{
+				MatToUse = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+			}
+
+			if (MatToUse)
+			{
+				UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(MatToUse, TracerActor);
+				if (DynMat)
+				{
+					DynMat->SetVectorParameterValue(TEXT("Color"), Color);
+					MeshComp->SetMaterial(0, DynMat);
+				}
+				else
+				{
+					MeshComp->SetMaterial(0, MatToUse);
+				}
+			}
+		}
+
+		// Detruit automatiquement l'acteur apres 2 secondes
+		TracerActor->SetLifeSpan(TracerLifeSpan);
 	}
 }
 

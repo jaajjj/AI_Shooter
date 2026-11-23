@@ -32,7 +32,7 @@ public:
 
 	void ToggleForwardDebug();
 	void ToggleShootDebug();
-
+	
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
@@ -173,6 +173,27 @@ public:
 	// Is Firing
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Firing")
 	bool IsFiring;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Effects")
+	class UStaticMesh* LaserCylinderMesh;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Effects")
+	class UMaterialInterface* SightMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Effects")
+	class UMaterialInterface* TracerMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Effects")
+	float LaserThickness = 6.0f;
+
+	// Duree de vie (en secondes) du trace de tir
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Effects", meta = (ClampMin = "0.05"))
+	float TracerLifeSpan = 2.0f;
+	
+	void SpawnTracerLine(const FVector& Start, const FVector& End, const FColor& Color);
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sight")
+	class UStaticMeshComponent* LaserSightMesh;
 
 };
 
